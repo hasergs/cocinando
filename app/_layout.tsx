@@ -1,9 +1,10 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
-
+import { useEffect } from 'react';
+import { supabase } from '../src/services/supabaseClient';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function RootLayout() {
@@ -11,6 +12,21 @@ export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+  const router = useRouter();
+  const segments = useSegments();
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      // Si no hay sesión y no estamos en /login ni en /(tabs), redirige a login
+      if (!session && segments[0] !== 'login' && segments[0] !== '(tabs)') {
+        router.replace('/login');
+      }
+      // Si hay sesión y estamos en /login, redirige a las tabs
+      if (session && segments[0] === 'login') {
+        router.replace('/(tabs)');
+      }
+    });
+  }, [segments]);
 
   if (!loaded) {
     // Async font loading only occurs in development.
@@ -20,6 +36,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
+        <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Image, StyleSheet, Alert, Text, ActivityIndicator, TouchableOpacity, ScrollView, Platform, TextInput, WebView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useFonts as usePacifico, Pacifico_400Regular } from '@expo-google-fonts/pacifico';
@@ -6,6 +6,9 @@ import { useFonts as useRoboto, Roboto_400Regular, Roboto_700Bold } from '@expo-
 import { searchYouTubeVideo } from '../services/youtubeApi';
 import { extractIngredientsFromText, getIngredientsFromGoogle } from '../services/geminiApi';
 import { WebView as NativeWebView } from 'react-native-webview';
+import * as Google from 'expo-auth-session/providers/google';
+import UniversalStorage from '../utils/UniversalStorage';
+import { MaterialIcons } from '@expo/vector-icons';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent';
 const GEMINI_API_KEY = 'AIzaSyDQTSOexVPE4Octz6ozaZh6KYleaWpUekk';
@@ -33,9 +36,17 @@ const PhotoCaptureScreen = () => {
   const [video, setVideo] = useState(null);
   const [ingredients, setIngredients] = useState([]);
   const [kcal, setKcal] = useState(null);
+  const [favorites, setFavorites] = useState([]);
 
   const [pacificoLoaded, pacificoError] = usePacifico({ Pacifico_400Regular });
   const [robotoLoaded, robotoError] = useRoboto({ Roboto_400Regular, Roboto_700Bold });
+
+  useEffect(() => {
+    // Cargar favoritos al montar
+    UniversalStorage.getItem('favorites').then((data) => {
+      if (data) setFavorites(JSON.parse(data));
+    });
+  }, []);
 
   if ((!pacificoLoaded && !pacificoError) || (!robotoLoaded && !robotoError)) {
     return null;
@@ -130,6 +141,36 @@ const PhotoCaptureScreen = () => {
     }
   };
 
+  const toggleFavorite = async (name) => {
+    let newFavs;
+    // Buscar si ya existe la receta en favoritos
+    const currentRecipe = {
+      name: dishName,
+      ingredients,
+      kcal,
+      video,
+      date: new Date().toISOString(),
+    };
+    const favs = await UniversalStorage.getItem('favoriteRecipes');
+    let favList = favs ? JSON.parse(favs) : [];
+    const exists = favList.find(r => r.name === name);
+    if (exists) {
+      favList = favList.filter(r => r.name !== name);
+    } else {
+      favList.push(currentRecipe);
+    }
+    setFavorites(favList.map(r => r.name));
+    await UniversalStorage.setItem('favoriteRecipes', JSON.stringify(favList));
+  };
+
+  // Nueva función para buscar otro video
+  const fetchAnotherVideo = async () => {
+    if (!dishName) return;
+    // Buscar otro video diferente al actual
+    const videoResult = await searchYouTubeVideo(dishName, video?.videoId);
+    setVideo(videoResult);
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
@@ -163,8 +204,21 @@ const PhotoCaptureScreen = () => {
         </View>
         {loading && <ActivityIndicator size="large" color="#E07A5F" style={{ marginTop: 20 }} />}
         {dishName ? (
-          <Text style={styles.dishName}>Plato identificado: {dishName}</Text>
+          <Text style={styles.dishName}>
+            Plato identificado: {dishName}
+            {dishName && dishName !== 'No identificado' && (
+              <TouchableOpacity onPress={() => toggleFavorite(dishName)}>
+                <MaterialIcons
+                  name={favorites.includes(dishName) ? 'star' : 'star-border'}
+                  size={24}
+                  color={favorites.includes(dishName) ? '#FFD600' : '#BDBDBD'}
+                  style={{ marginLeft: 8 }}
+                />
+              </TouchableOpacity>
+            )}
+          </Text>
         ) : null}
+        {/* VIDEO RECOMENDADO */}
         {video && (
           <View style={styles.videoContainer}>
             <Text style={styles.videoTitle}>Video recomendado:</Text>
@@ -187,24 +241,22 @@ const PhotoCaptureScreen = () => {
             )}
             <Text style={styles.videoText}>{video.title}</Text>
             <Text style={styles.videoChannel}>Canal: {video.channelTitle}</Text>
+            {/* Botón para buscar otro video */}
+            <TouchableOpacity style={styles.videoButton} onPress={fetchAnotherVideo}>
+              <Text style={styles.videoButtonText}>Ver otro video</Text>
+            </TouchableOpacity>
           </View>
         )}
-        {/* INGREDIENTES SIEMPRE DEBAJO DEL VIDEO */}
-        {video && (
+        {/* INGREDIENTES SIEMPRE DEBAJO DEL VIDEO O SIEMPRE QUE EXISTAN */}
+        {ingredients.length > 0 && (
           <View style={styles.ingredientsContainer}>
             <Text style={styles.ingredientsTitle}>Ingredientes sugeridos:</Text>
-            {ingredients.length > 0 ? (
-              ingredients.map((ing, idx) => (
-                <Text key={idx} style={styles.ingredientItem}>• {ing}</Text>
-              ))
-            ) : (
-              <Text style={styles.ingredientItem}>No se pudieron extraer ingredientes de este video.</Text>
-            )}
-            {kcal ? (
-              <Text style={styles.kcalText}>Kcal por persona: {kcal}</Text>
-            ) : (
-              <Text style={styles.kcalText}>Kcal por persona: No disponible</Text>
-            )}
+            {ingredients.map((ing, idx) => (
+              <Text key={idx} style={styles.ingredientItem}>• {ing}</Text>
+            ))}
+            <Text style={styles.kcalText}>
+              Kcal por persona: {kcal ? kcal : 'No disponible'}
+            </Text>
           </View>
         )}
         <View style={styles.recommendationsContainer}>
@@ -410,6 +462,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#F4A259',
     marginBottom: 2,
+  },
+  videoButton: {
+    backgroundColor: '#F4A259',
+    paddingVertical: 12,
+    paddingHorizontal: 22,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  videoButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: 'bold',
+    letterSpacing: 1,
   },
   ingredientsContainer: {
     width: '100%',
