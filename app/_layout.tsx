@@ -6,6 +6,8 @@ import 'react-native-reanimated';
 import { useEffect } from 'react';
 import { supabase } from '../src/services/supabaseClient';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -41,6 +43,8 @@ export default function RootLayout() {
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
+      <Analytics />
+      <SpeedInsights />
     </ThemeProvider>
   );
 }
