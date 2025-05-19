@@ -52,9 +52,17 @@
     "eslint": "^9.25.0",
     "eslint-config-expo": "~9.2.0",
     "typescript": "~5.8.3"
+<<<<<<< HEAD
   },
   "private": true,
   "_moduleAliases": {
     "@utils": "src/utils"
   }
+=======
+  },     "scripts": {
+     "build": "expo export:web"
+   }
+  "private": true,
+
+>>>>>>> b4d968710080b5e885a03a0ab2ec9e974f85e6be
 }
