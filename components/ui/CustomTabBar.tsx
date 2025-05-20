@@ -48,7 +48,7 @@ export default function CustomTabBar({ state, descriptors, navigation }: BottomT
                 style={styles.tab}
                 activeOpacity={0.7}
               >
-                <Animated.View style={[isFocused && styles.iconActive, { transform: [{ scale: isFocused ? 1.2 : 1 }] }]}> 
+                <Animated.View style={[isFocused && styles.iconActive, { transform: [{ scale: isFocused ? 1.2 : 1 }], shadowColor: isFocused ? Colors.light.tint : undefined }]}> 
                   <IconSymbol name={tab.icon as any} size={30} color={isFocused ? Colors.light.tint : Colors.light.tabIconDefault} />
                 </Animated.View>
               </TouchableOpacity>
@@ -58,6 +58,7 @@ export default function CustomTabBar({ state, descriptors, navigation }: BottomT
             style={[styles.indicator, {
               width: indicatorWidth,
               left: indicatorX,
+              backgroundColor: Colors.light.tint,
             }]}
           />
         </View>
@@ -100,7 +101,6 @@ const styles = StyleSheet.create({
     height: 56,
   },
   iconActive: {
-    shadowColor: Colors.light.tint,
     shadowOpacity: 0.18,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
@@ -110,7 +110,6 @@ const styles = StyleSheet.create({
     bottom: 8,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Colors.light.tint,
     zIndex: -1,
   },
 }); 
