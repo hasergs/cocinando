@@ -110,7 +110,10 @@ export default function RecetasScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Mis Recetas Favoritas</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+        <MaterialIcons name="star" size={32} color="#F4A259" style={{ marginRight: 8 }} />
+        <Text style={styles.title}>Mis Recetas Favoritas</Text>
+      </View>
       <FlatList
         data={favorites}
         keyExtractor={(item) => item.name}
