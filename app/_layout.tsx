@@ -17,8 +17,8 @@ export default function RootLayout() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      // Si no hay sesión y no estamos en /login ni en /(tabs), redirige a login
-      if (!session && segments[0] !== 'login' && segments[0] !== '(tabs)') {
+      // Permitir acceso libre a la landing page (root) y login
+      if (!session && segments.length > 0 && segments[0] !== 'login' && segments[0] !== '(tabs)') {
         router.replace('/login');
       }
       // Si hay sesión y estamos en /login, redirige a las tabs
